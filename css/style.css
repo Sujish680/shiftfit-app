@@ -1,0 +1,342 @@
+/* ==================== CSS CUSTOM PROPERTIES ==================== */
+:root {
+  --bg-white: #ffffff;
+  --heading-navy: #1b2a4a;
+  --primary-blue: #2d5bff;
+  --primary-hover: #1a45e0;
+  --card-pale-blue: #eaf0ff;
+  --input-lilac-grey: #f0f0f5;
+  --text-dark: #333333;
+  --text-muted: #666666;
+  --fit-good: #28a745;
+  --fit-tight: #f5a623;
+  --fit-conflict: #dc3545;
+  --radius: 12px;
+}
+
+/* ==================== RESET & BASE ==================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-white);
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+/* ==================== LAYOUT ==================== */
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.screen {
+  display: none;
+  min-height: 100vh;
+}
+
+.screen.active {
+  display: block;
+}
+
+/* ==================== TYPOGRAPHY ==================== */
+h1 {
+  font-size: 2rem;
+  color: var(--heading-navy);
+  margin-bottom: 0.5rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  color: var(--heading-navy);
+  margin-bottom: 1rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+  color: var(--primary-blue);
+  margin-bottom: 0.75rem;
+}
+
+.tagline {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+/* ==================== WELCOME SCREEN ==================== */
+.welcome-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+}
+
+/* ==================== BUTTONS ==================== */
+sf-button {
+  display: contents;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary-blue);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--input-lilac-grey);
+  color: var(--text-dark);
+}
+
+.btn-secondary:hover {
+  background-color: #e0e0e8;
+}
+
+.btn-full {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+/* ==================== FORM CARDS ==================== */
+.form-card {
+  background-color: var(--card-pale-blue);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.form-card label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-bottom: 0.75rem;
+}
+
+.form-card input[type="text"],
+.form-card input[type="date"],
+.form-card input[type="time"],
+.form-card select {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--input-lilac-grey);
+  font-size: 1rem;
+  color: var(--text-dark);
+  margin-top: 0.25rem;
+}
+
+.form-card input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.form-row label {
+  flex: 1;
+}
+
+.form-card .btn {
+  margin-top: 0.5rem;
+}
+
+/* ==================== ITEM LISTS ==================== */
+.item-list {
+  list-style: none;
+  margin-top: 0.75rem;
+}
+
+.item-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-white);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.item-list li button {
+  background: none;
+  border: none;
+  color: var(--fit-conflict);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ==================== SUMMARY CARDS ==================== */
+.summary-card {
+  background-color: var(--card-pale-blue);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.summary-card h3 {
+  margin-bottom: 0.5rem;
+}
+
+.summary-list {
+  list-style: none;
+}
+
+.summary-list li {
+  font-size: 0.9rem;
+  padding: 0.3rem 0;
+  color: var(--text-dark);
+}
+
+.summary-list li.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ==================== RESULT SCREEN ==================== */
+.result-badge {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.result-badge.good-fit {
+  background-color: var(--fit-good);
+}
+
+.result-badge.tight-fit {
+  background-color: var(--fit-tight);
+}
+
+.result-badge.conflict {
+  background-color: var(--fit-conflict);
+}
+
+.result-summary {
+  font-size: 1rem;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.result-explanations {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.result-explanations li {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-dark);
+}
+
+.result-actions {
+  margin-top: 1.5rem;
+}
+
+
+/* ==================== NOTICE ALERT COMPONENT ==================== */
+sf-notice-alert {
+  display: contents;
+}
+
+.notice-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid;
+  margin-bottom: 1rem;
+}
+
+.notice-success {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.notice-warning {
+  background-color: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.notice-destructive {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.notice-icon {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.notice-success .notice-icon {
+  color: #22c55e;
+}
+
+.notice-warning .notice-icon {
+  color: #f59e0b;
+}
+
+.notice-destructive .notice-icon {
+  color: #ef4444;
+}
+
+.notice-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.notice-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.notice-description {
+  font-weight: 400;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  opacity: 0.85;
+}
+/* ==================== CONFIRMATION SCREEN ==================== */
+.confirm-message {
+  font-size: 1rem;
+  color: var(--text-dark);
+}
