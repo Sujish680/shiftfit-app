@@ -10,7 +10,7 @@ import { useAuth } from './AuthContext.jsx'
 
 const DataContext = createContext(null)
 const emptyData = { classes: [], assessments: [], studyBlocks: [], workShifts: [] }
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 
 export function DataProvider({ children }) {
   const [data, setData] = useState(emptyData)
