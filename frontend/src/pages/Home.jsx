@@ -1,10 +1,11 @@
 /**
  * Home.jsx
- * Screen 4 — Summary of all commitments with "Check a Shift" action.
+ * Screen 4 — Summary of all commitments with "Check a Shift" and Logout actions.
  */
 
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../context/DataContext.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 import { formatTime, formatDate } from '../lib/format.js'
 import Button from '../components/Button.jsx'
 import SummaryCard from '../components/SummaryCard.jsx'
@@ -12,6 +13,13 @@ import SummaryCard from '../components/SummaryCard.jsx'
 export default function Home() {
   const navigate = useNavigate()
   const { data } = useData()
+  const { logout } = useAuth()
+
+  function handleLogout() {
+    navigate('/', { replace: true })
+    // Defer auth state clearing so the public Welcome route loads first
+    setTimeout(() => logout(), 0)
+  }
 
   return (
     <section className="screen active">
@@ -56,6 +64,10 @@ export default function Home() {
 
         <Button variant="primary" full onClick={() => navigate('/check-shift')}>
           Check a Shift
+        </Button>
+
+        <Button variant="secondary" full onClick={handleLogout}>
+          Log Out
         </Button>
       </div>
     </section>

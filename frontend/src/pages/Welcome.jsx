@@ -1,19 +1,23 @@
 /**
  * Welcome.jsx
- * Screen 1 — Introduction and "Get Started" entry point.
- * Includes an M1 development-preview notice so the in-memory-only
- * storage is clearly communicated to the user.
+ * Screen 1 — Introduction and entry point.
+ * Shows login/signup buttons when not authenticated.
  */
 
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
 import Button from '../components/Button.jsx'
-import NoticeAlert from '../components/NoticeAlert.jsx'
 
 export default function Welcome() {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   function handleGetStarted() {
-    navigate('/study-setup')
+    if (user) {
+      navigate('/study-setup')
+    } else {
+      navigate('/login')
+    }
   }
 
   return (
@@ -25,11 +29,16 @@ export default function Welcome() {
           <Button variant="primary" onClick={handleGetStarted}>
             Get Started
           </Button>
-          <NoticeAlert
-            variant="warning"
-            title="Development preview"
-            description="Data is stored in memory for this session only and resets on refresh. Persistent storage arrives in a later milestone."
-          />
+          {!user && (
+            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+              <Button variant="secondary" onClick={() => navigate('/login')}>
+                Log In
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/signup')}>
+                Sign Up
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </section>

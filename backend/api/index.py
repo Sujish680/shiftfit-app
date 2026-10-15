@@ -2,8 +2,9 @@
 ShiftFit FastAPI Backend — api/index.py
 
 Endpoints:
-  GET  /api/health      — service health check
-  POST /api/check-shift — shift-fit decision logic
+  GET  /api/health         — service health check
+  POST /api/check-shift    — shift-fit decision logic (PROTECTED)
+  /api/auth/*              — authentication endpoints (in auth.py)
 
 Decision logic is a verbatim port from js/check.js (Assessment 2).
 All rules, precedence, explanation strings and summaries are preserved.
@@ -12,8 +13,11 @@ All rules, precedence, explanation strings and summaries are preserved.
 from datetime import date as Date
 from typing import List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+from api.auth import router as auth_router, get_current_user
 
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
@@ -145,12 +149,28 @@ def check_shift(proposed, classes, assessments, study_blocks, work_shifts):
 
 app = FastAPI(title="ShiftFit API", version="0.1.0")
 
+# CORS - allow local frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include auth router
+app.include_router(auth_router)
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "message": "ShiftFit API is running"}
 
 @app.post("/api/check-shift", response_model=ShiftCheckResponse)
-def api_check_shift(request: ShiftCheckRequest):
+async def api_check_shift(
+    request: ShiftCheckRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Check shift fit — requires authentication."""
     return check_shift(
         proposed=request.proposed,
         classes=request.classes,
