@@ -14,7 +14,7 @@ from uuid import UUID
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, field_validator
-from api.auth import get_current_user
+from .auth import get_current_user
 
 _backend_dir = Path(__file__).resolve().parent.parent
 load_dotenv(_backend_dir / ".env")

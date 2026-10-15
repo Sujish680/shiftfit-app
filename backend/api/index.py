@@ -13,13 +13,14 @@ All rules, precedence, explanation strings and summaries are preserved.
 
 from datetime import date as Date
 from typing import List
+from os import getenv
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from api.auth import router as auth_router, get_current_user
-from api.crud import router as crud_router, get_db, serialize_record
+from .auth import router as auth_router, get_current_user
+from .crud import router as crud_router, get_db, serialize_record
 
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
@@ -154,7 +155,11 @@ app = FastAPI(title="ShiftFit API", version="0.1.0")
 # CORS - allow local frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        getenv("FRONTEND_URL", "")
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
