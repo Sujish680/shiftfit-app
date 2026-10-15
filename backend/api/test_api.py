@@ -1,4 +1,4 @@
-"""ShiftFit API Tests — decision-logic scenarios with auth override.
+"""ShiftFit API Tests — decision-logic function tests + health.
 Run: cd backend && python -m pytest api/test_api.py -v"""
 
 import pytest
@@ -6,98 +6,77 @@ from fastapi.testclient import TestClient
 from api.index import app, check_shift, ProposedShift
 from api.auth import get_current_user
 
-
 @pytest.fixture
 def client():
     return TestClient(app)
 
 @pytest.fixture(autouse=True)
 def override_auth():
-    """Override auth dependency for decision-logic tests."""
     app.dependency_overrides[get_current_user] = lambda: {"user_id": "test-user", "email": "test@example.com"}
     yield
     app.dependency_overrides.clear()
 
-
 FRI = "2026-10-16"
 DASH = "\u2013"
-E = {"classes": [], "assessments": [], "studyBlocks": [], "workShifts": []}
-
 
 def test_health(client):
     r = client.get("/api/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
 
-def test_invalid_request(client):
-    assert client.post("/api/check-shift", json={}).status_code == 422
+# ── Decision logic function tests (no DB needed) ─────────────────────────────
 
-def test_1_good_fit(client):
-    p = {"employer": "Cafe", "date": FRI, "startTime": "09:00", "endTime": "17:00"}
-    d = client.post("/api/check-shift", json={"proposed": p, **E}).json()
-    assert d["verdict"] == "Good Fit"
-    assert "No scheduled class overlaps this shift" in d["explanations"]
-
-def test_2_conflict_with_class(client):
-    p = {"employer": "Cafe", "date": FRI, "startTime": "09:00", "endTime": "13:00"}
-    classes = [{"name": "Business 101", "day": "Friday", "startTime": "10:00", "endTime": "12:00"}]
-    d = client.post("/api/check-shift", json={"proposed": p, "classes": classes, "assessments": [], "studyBlocks": [], "workShifts": []}).json()
-    assert d["verdict"] == "Conflict"
-    assert "Business 101" in d["explanations"][0]
-
-def test_3_conflict_with_work_shift(client):
-    p = {"employer": "Cafe", "date": FRI, "startTime": "09:00", "endTime": "17:00"}
-    ws = [{"employer": "Library", "date": FRI, "startTime": "08:00", "endTime": "12:00"}]
-    d = client.post("/api/check-shift", json={"proposed": p, "classes": [], "assessments": [], "studyBlocks": [], "workShifts": ws}).json()
-    assert d["verdict"] == "Conflict"
-    assert any("Library" in e for e in d["explanations"])
-
-def test_4_tight_fit_assessment(client):
-    p = {"employer": "Cafe", "date": FRI, "startTime": "09:00", "endTime": "17:00"}
-    a = [{"name": "Individual Assignment", "dueDate": FRI}]
-    d = client.post("/api/check-shift", json={"proposed": p, "classes": [], "assessments": a, "studyBlocks": [], "workShifts": []}).json()
-    assert d["verdict"] == "Tight Fit"
-    assert any("Individual Assignment" in e for e in d["explanations"])
-
-def test_5_tight_fit_study_block(client):
-    p = {"employer": "Cafe", "date": FRI, "startTime": "09:00", "endTime": "13:00"}
-    sb = [{"day": "Friday", "startTime": "10:00", "endTime": "14:00"}]
-    d = client.post("/api/check-shift", json={"proposed": p, "classes": [], "assessments": [], "studyBlocks": sb, "workShifts": []}).json()
-    assert d["verdict"] == "Tight Fit"
-    assert any("study time" in e for e in d["explanations"])
-
-def test_6_conflict_precedence(client):
-    p = {"employer": "Cafe", "date": FRI, "startTime": "09:00", "endTime": "13:00"}
-    classes = [{"name": "Business 101", "day": "Friday", "startTime": "10:00", "endTime": "12:00"}]
-    assessments = [{"name": "Group Report", "dueDate": FRI}]
-    d = client.post("/api/check-shift", json={"proposed": p, "classes": classes, "assessments": assessments, "studyBlocks": [], "workShifts": []}).json()
-    assert d["verdict"] == "Conflict"
-    assert any("Group Report" in e for e in d["explanations"])
-
-def test_7_back_to_back_no_overlap(client):
-    p = {"employer": "Cafe", "date": FRI, "startTime": "12:00", "endTime": "17:00"}
-    classes = [{"name": "Business 101", "day": "Friday", "startTime": "09:00", "endTime": "12:00"}]
-    d = client.post("/api/check-shift", json={"proposed": p, "classes": classes, "assessments": [], "studyBlocks": [], "workShifts": []}).json()
-    assert d["verdict"] == "Good Fit"
-
-def test_parity_all_scenarios(client):
+def test_1_good_fit():
     from api.index import ClassInfo, Assessment, StudyBlock, WorkShift
-    scenarios = [
-        ({"employer":"Cafe","date":FRI,"startTime":"09:00","endTime":"17:00"}, [], [], [], [], "Good Fit"),
-        ({"employer":"Cafe","date":FRI,"startTime":"09:00","endTime":"13:00"}, [{"name":"B101","day":"Friday","startTime":"10:00","endTime":"12:00"}], [], [], [], "Conflict"),
-        ({"employer":"Cafe","date":FRI,"startTime":"09:00","endTime":"17:00"}, [], [], [], [{"employer":"Lib","date":FRI,"startTime":"08:00","endTime":"12:00"}], "Conflict"),
-        ({"employer":"Cafe","date":FRI,"startTime":"09:00","endTime":"17:00"}, [], [{"name":"A1","dueDate":FRI}], [], [], "Tight Fit"),
-        ({"employer":"Cafe","date":FRI,"startTime":"09:00","endTime":"13:00"}, [], [], [{"day":"Friday","startTime":"10:00","endTime":"14:00"}], [], "Tight Fit"),
-        ({"employer":"Cafe","date":FRI,"startTime":"09:00","endTime":"13:00"}, [{"name":"B101","day":"Friday","startTime":"10:00","endTime":"12:00"}], [{"name":"R1","dueDate":FRI}], [], [], "Conflict"),
-        ({"employer":"Cafe","date":FRI,"startTime":"12:00","endTime":"17:00"}, [{"name":"B101","day":"Friday","startTime":"09:00","endTime":"12:00"}], [], [], [], "Good Fit"),
-    ]
-    for proposed, classes, assessments, sb, ws, expected in scenarios:
-        result = check_shift(
-            ProposedShift(**proposed),
-            [ClassInfo(**c) for c in classes],
-            [Assessment(**a) for a in assessments],
-            [StudyBlock(**b) for b in sb],
-            [WorkShift(**w) for w in ws],
-        )
-        assert result.verdict == expected
-        assert len(result.explanations) >= 2
+    proposed = ProposedShift(employer="Cafe", date=FRI, startTime="09:00", endTime="17:00")
+    result = check_shift(proposed, [], [], [], [])
+    assert result.verdict == "Good Fit"
+    assert "No scheduled class overlaps this shift" in result.explanations
+
+def test_2_conflict_with_class():
+    from api.index import ClassInfo
+    proposed = ProposedShift(employer="Cafe", date=FRI, startTime="09:00", endTime="13:00")
+    classes = [ClassInfo(name="Business 101", day="Friday", startTime="10:00", endTime="12:00")]
+    result = check_shift(proposed, classes, [], [], [])
+    assert result.verdict == "Conflict"
+    assert "Business 101" in result.explanations[0]
+
+def test_3_conflict_with_work_shift():
+    from api.index import WorkShift
+    proposed = ProposedShift(employer="Cafe", date=FRI, startTime="09:00", endTime="17:00")
+    ws = [WorkShift(employer="Library", date=FRI, startTime="08:00", endTime="12:00")]
+    result = check_shift(proposed, [], [], [], ws)
+    assert result.verdict == "Conflict"
+    assert any("Library" in e for e in result.explanations)
+
+def test_4_tight_fit_assessment():
+    from api.index import Assessment
+    proposed = ProposedShift(employer="Cafe", date=FRI, startTime="09:00", endTime="17:00")
+    a = [Assessment(name="Individual Assignment", dueDate=FRI)]
+    result = check_shift(proposed, [], a, [], [])
+    assert result.verdict == "Tight Fit"
+    assert any("Individual Assignment" in e for e in result.explanations)
+
+def test_5_tight_fit_study_block():
+    from api.index import StudyBlock
+    proposed = ProposedShift(employer="Cafe", date=FRI, startTime="09:00", endTime="13:00")
+    sb = [StudyBlock(day="Friday", startTime="10:00", endTime="14:00")]
+    result = check_shift(proposed, [], [], sb, [])
+    assert result.verdict == "Tight Fit"
+    assert any("study time" in e for e in result.explanations)
+
+def test_6_conflict_precedence():
+    from api.index import ClassInfo, Assessment
+    proposed = ProposedShift(employer="Cafe", date=FRI, startTime="09:00", endTime="13:00")
+    classes = [ClassInfo(name="Business 101", day="Friday", startTime="10:00", endTime="12:00")]
+    assessments = [Assessment(name="Group Report", dueDate=FRI)]
+    result = check_shift(proposed, classes, assessments, [], [])
+    assert result.verdict == "Conflict"
+    assert any("Group Report" in e for e in result.explanations)
+
+def test_7_back_to_back_no_overlap():
+    from api.index import ClassInfo
+    proposed = ProposedShift(employer="Cafe", date=FRI, startTime="12:00", endTime="17:00")
+    classes = [ClassInfo(name="Business 101", day="Friday", startTime="09:00", endTime="12:00")]
+    result = check_shift(proposed, classes, [], [], [])
+    assert result.verdict == "Good Fit"

@@ -115,22 +115,32 @@ def test_me_expired_token(client, mock_supabase):
 
 # ── Protected endpoints ──────────────────────────────────────────────────────
 
-SHIFT_PAYLOAD = {
-    "proposed": {"employer": "Cafe", "date": "2026-10-16", "startTime": "09:00", "endTime": "17:00"},
-    "classes": [], "assessments": [], "studyBlocks": [], "workShifts": []
-}
+SHIFT_PAYLOAD = {"employer": "Cafe", "date": "2026-10-16", "startTime": "09:00", "endTime": "17:00"}
 
 def test_check_shift_requires_auth(client):
     response = client.post("/api/check-shift", json=SHIFT_PAYLOAD)
     assert response.status_code == 401
 
 def test_check_shift_with_auth(client, mock_supabase):
-    from api.index import app
+    from api.index import app, get_db
     from api.auth import get_current_user
-    app.dependency_overrides[get_current_user] = lambda: {"user_id": "test-123", "email": "test@example.com"}
-    response = client.post("/api/check-shift", json=SHIFT_PAYLOAD)
-    assert response.status_code == 200
-    assert response.json()["verdict"] == "Good Fit"
+    from unittest.mock import MagicMock
+    
+    # Mock database for check-shift
+    with patch('api.index.get_db') as mock_get_db:
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=False)
+        mock_conn.cursor.return_value.__enter__ = Mock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = Mock(return_value=False)
+        mock_get_db.return_value = mock_conn
+        mock_cursor.fetchall.return_value = []
+        
+        app.dependency_overrides[get_current_user] = lambda: {"user_id": "test-123", "email": "test@example.com"}
+        response = client.post("/api/check-shift", json=SHIFT_PAYLOAD)
+        assert response.status_code == 200
+        assert response.json()["verdict"] == "Good Fit"
 
 def test_health_public(client):
     response = client.get("/api/health")

@@ -3,8 +3,9 @@ ShiftFit FastAPI Backend — api/index.py
 
 Endpoints:
   GET  /api/health         — service health check
-  POST /api/check-shift    — shift-fit decision logic (PROTECTED)
+  POST /api/check-shift    — shift-fit decision logic (PROTECTED, uses DB data)
   /api/auth/*              — authentication endpoints (in auth.py)
+  /api/*                   — CRUD endpoints (in crud.py)
 
 Decision logic is a verbatim port from js/check.js (Assessment 2).
 All rules, precedence, explanation strings and summaries are preserved.
@@ -13,11 +14,12 @@ All rules, precedence, explanation strings and summaries are preserved.
 from datetime import date as Date
 from typing import List
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from api.auth import router as auth_router, get_current_user
+from api.crud import router as crud_router, get_db, serialize_record
 
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
@@ -158,8 +160,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include auth router
+# Include auth and CRUD routers
 app.include_router(auth_router)
+app.include_router(crud_router)
 
 @app.get("/api/health")
 def health():
@@ -167,14 +170,51 @@ def health():
 
 @app.post("/api/check-shift", response_model=ShiftCheckResponse)
 async def api_check_shift(
-    request: ShiftCheckRequest,
+    proposed: ProposedShift,
     user: dict = Depends(get_current_user)
 ):
-    """Check shift fit — requires authentication."""
-    return check_shift(
-        proposed=request.proposed,
-        classes=request.classes,
-        assessments=request.assessments,
-        study_blocks=request.studyBlocks,
-        work_shifts=request.workShifts,
-    )
+    """
+    Check shift fit against the authenticated user's SAVED commitments.
+    
+    Fetches the user's classes, assessments, study blocks and work shifts
+    from the database. Does NOT trust arbitrary data from the request body.
+    """
+    try:
+        # Fetch user's saved data from database
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT name, day, start_time, end_time FROM classes WHERE user_id = %s", (user["user_id"],))
+                classes_data = cur.fetchall()
+                
+                cur.execute("SELECT name, due_date FROM assessments WHERE user_id = %s", (user["user_id"],))
+                assessments_data = cur.fetchall()
+                
+                cur.execute("SELECT day, start_time, end_time FROM study_blocks WHERE user_id = %s", (user["user_id"],))
+                study_blocks_data = cur.fetchall()
+                
+                cur.execute("SELECT employer, date, start_time, end_time FROM work_shifts WHERE user_id = %s", (user["user_id"],))
+                work_shifts_data = cur.fetchall()
+        
+        # Convert to Pydantic models for check_shift function
+        classes = [ClassInfo(name=str(r['name']), day=str(r['day']), 
+                            startTime=str(r['start_time'])[:5], endTime=str(r['end_time'])[:5]) 
+                  for r in classes_data]
+        assessments = [Assessment(name=str(r['name']), dueDate=str(r['due_date'])) 
+                      for r in assessments_data]
+        study_blocks = [StudyBlock(day=str(r['day']), 
+                                  startTime=str(r['start_time'])[:5], endTime=str(r['end_time'])[:5]) 
+                       for r in study_blocks_data]
+        work_shifts = [WorkShift(employer=str(r['employer']), date=str(r['date']),
+                                startTime=str(r['start_time'])[:5], endTime=str(r['end_time'])[:5]) 
+                      for r in work_shifts_data]
+        
+        # Run decision logic with user's saved data
+        return check_shift(
+            proposed=proposed,
+            classes=classes,
+            assessments=assessments,
+            study_blocks=study_blocks,
+            work_shifts=work_shifts
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to check shift")

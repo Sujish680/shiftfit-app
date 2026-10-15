@@ -43,7 +43,10 @@ export default function CheckShift() {
   return (
     <section className="screen active">
       <div className="container">
-        <h2>Check a Shift</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ margin: 0 }}>Check a Shift</h2>
+          <Button variant="secondary" onClick={() => navigate('/home')}>Home</Button>
+        </div>
 
         <FormCard>
           <form onSubmit={handleCheck}>

@@ -1,14 +1,10 @@
 /**
  * Result.jsx
- * Screen 6 — Displays shift verdict (Good Fit / Tight Fit / Conflict),
- * explanation bullets, and actions to add the shift or go back.
- *
- * The checkShift function is a verbatim port of the A2 algorithm; no rules
- * have been changed. Golden-master parity tests are deferred to M2.
- *
- * Redirects to /check-shift if accessed without navigation state.
+ * Screen 6 — Displays shift verdict and actions.
+ * Now uses async addWorkShift from DataContext.
  */
 
+import { useState } from 'react'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import { useData } from '../context/DataContext.jsx'
 import Button from '../components/Button.jsx'
@@ -19,6 +15,7 @@ export default function Result() {
   const location = useLocation()
   const navigate = useNavigate()
   const { addWorkShift } = useData()
+  const [saving, setSaving] = useState(false)
 
   const state = location.state
   if (!state?.proposed || !state?.result) {
@@ -34,9 +31,13 @@ export default function Result() {
   }
   const variant = verdictMap[result.verdict] || 'success'
 
-  function handleAddAnyway() {
-    addWorkShift(proposed.employer, proposed.date, proposed.startTime, proposed.endTime)
-    navigate('/confirmation', { state: { addedShift: proposed } })
+  async function handleAddAnyway() {
+    setSaving(true)
+    const success = await addWorkShift(proposed.employer, proposed.date, proposed.startTime, proposed.endTime)
+    setSaving(false)
+    if (success) {
+      navigate('/confirmation', { state: { addedShift: proposed } })
+    }
   }
 
   function handleGoBack() {
@@ -60,8 +61,8 @@ export default function Result() {
         </SummaryCard>
 
         <div className="result-actions">
-          <Button variant="primary" full onClick={handleAddAnyway}>
-            Add Shift Anyway
+          <Button variant="primary" full onClick={handleAddAnyway} disabled={saving}>
+            {saving ? 'Saving...' : 'Add Shift Anyway'}
           </Button>
           <Button variant="secondary" full onClick={handleGoBack}>
             Go Back

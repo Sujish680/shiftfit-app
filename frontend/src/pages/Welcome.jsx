@@ -1,23 +1,47 @@
 /**
  * Welcome.jsx
  * Screen 1 — Introduction and entry point.
- * Shows login/signup buttons when not authenticated.
+ * Redirects to /home if already authenticated.
+ * Shows loading during session restoration to prevent button flash.
  */
 
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Button from '../components/Button.jsx'
 
 export default function Welcome() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+
+  // Redirect authenticated users to Home
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/home', { replace: true })
+    }
+  }, [user, loading, navigate])
+
+  // Show loading while verifying session (prevents button flash)
+  if (loading) {
+    return (
+      <section className="screen active">
+        <div className="container">
+          <div className="welcome-content">
+            <h1>ShiftFit</h1>
+            <p className="tagline">Loading...</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // If user is authenticated, don't render (will redirect via useEffect)
+  if (user) {
+    return null
+  }
 
   function handleGetStarted() {
-    if (user) {
-      navigate('/study-setup')
-    } else {
-      navigate('/login')
-    }
+    navigate('/login')
   }
 
   return (
@@ -29,16 +53,14 @@ export default function Welcome() {
           <Button variant="primary" onClick={handleGetStarted}>
             Get Started
           </Button>
-          {!user && (
-            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-              <Button variant="secondary" onClick={() => navigate('/login')}>
-                Log In
-              </Button>
-              <Button variant="secondary" onClick={() => navigate('/signup')}>
-                Sign Up
-              </Button>
-            </div>
-          )}
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+            <Button variant="secondary" onClick={() => navigate('/login')}>
+              Log In
+            </Button>
+            <Button variant="secondary" onClick={() => navigate('/signup')}>
+              Sign Up
+            </Button>
+          </div>
         </div>
       </div>
     </section>

@@ -1,6 +1,6 @@
 /**
  * Home.jsx
- * Screen 4 — Summary of all commitments with "Check a Shift" and Logout actions.
+ * Screen 4 — Summary of all commitments with Logout. Now shows loading state.
  */
 
 import { useNavigate } from 'react-router-dom'
@@ -12,19 +12,31 @@ import SummaryCard from '../components/SummaryCard.jsx'
 
 export default function Home() {
   const navigate = useNavigate()
-  const { data } = useData()
+  const { data, loading, error } = useData()
   const { logout } = useAuth()
 
   function handleLogout() {
     navigate('/', { replace: true })
-    // Defer auth state clearing so the public Welcome route loads first
     setTimeout(() => logout(), 0)
+  }
+
+  if (loading) {
+    return (
+      <section className="screen active">
+        <div className="container">
+          <h2>Home</h2>
+          <p>Loading your commitments...</p>
+        </div>
+      </section>
+    )
   }
 
   return (
     <section className="screen active">
       <div className="container">
         <h2>Home</h2>
+
+        {error && <p style={{ color: 'red' }}>{error}</p>}
 
         <SummaryCard title="Classes">
           <ul className="summary-list">
@@ -61,6 +73,14 @@ export default function Home() {
             )}
           </ul>
         </SummaryCard>
+
+        <Button variant="secondary" full onClick={() => navigate('/study-setup')}>
+          Edit Study Setup
+        </Button>
+
+        <Button variant="secondary" full onClick={() => navigate('/work-setup')}>
+          Edit Work Setup
+        </Button>
 
         <Button variant="primary" full onClick={() => navigate('/check-shift')}>
           Check a Shift
